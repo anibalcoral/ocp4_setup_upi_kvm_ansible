@@ -27,7 +27,7 @@
     path: "{{ clusters_dir }}/.cache/{{ ocpversion | regex_replace('(\\d+\\.\\d+).*', '\\1') }}/rhcos.iso"
   register: rhcosisofile
 
-- name: Download rhcos iso to cache when ocp <= 4.18
+- name: Download rhcos iso to cache when ocp < 4.19
   ansible.builtin.get_url:
     url: "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/{{ ocpversion | regex_replace('(\\d+\\.\\d+).*', '\\1') }}/latest/rhcos-live.x86_64.iso"
     dest: "{{ clusters_dir }}/.cache/{{ ocpversion | regex_replace('(\\d+\\.\\d+).*', '\\1') }}/rhcos.iso"
@@ -37,7 +37,7 @@
   when:
     - rhcosisofile.stat is defined
     - not rhcosisofile.stat.exists
-    - (not "4.19" in ocpversion)
+    - ocpversion is version('4.19', '<')
 
 - name: Download rhcos iso to cache when ocp >= 4.19
   ansible.builtin.get_url:
@@ -49,7 +49,7 @@
   when:
     - rhcosisofile.stat is defined
     - not rhcosisofile.stat.exists
-    - ("4.19" in ocpversion)
+    - ocpversion is version('4.19', '>=')
 
 - name: Include RHCOS image download tasks for non-SNO
   ansible.builtin.include_tasks: download_rhcos_images.yaml
