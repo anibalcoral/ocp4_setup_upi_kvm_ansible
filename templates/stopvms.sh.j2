@@ -1,0 +1,113 @@
+#!/bin/bash
+# Script to stop all VMs for OpenShift cluster: {{ clustername }}
+# Generated automatically by Ansible
+
+set -e
+
+CLUSTER_NAME="{{ clustername }}"
+{% if sno == "true" %}
+# Single Node OpenShift (SNO) - only master node
+MASTERS=("master-0")
+WORKERS=()
+{% else %}
+# 3-node cluster configuration
+MASTERS=("master-0" "master-1" "master-2")
+{% if n_worker > 0 %}
+WORKERS=({% for i in range(n_worker) %}"worker-{{ i }}"{% if not loop.last %} {% endif %}{% endfor %})
+{% else %}
+WORKERS=()
+{% endif %}
+{% endif %}
+
+SHUTDOWN_TYPE="${1:-graceful}"  # Default to graceful shutdown
+
+echo "=========================================="
+echo "Stopping OpenShift cluster VMs"
+echo "Cluster: ${CLUSTER_NAME}"
+echo "Shutdown type: ${SHUTDOWN_TYPE}"
+echo "=========================================="
+
+if [ "${SHUTDOWN_TYPE}" != "graceful" ] && [ "${SHUTDOWN_TYPE}" != "force" ]; then
+    echo "Usage: $0 [graceful|force]"
+    echo "  graceful: Graceful shutdown (default)"
+    echo "  force:    Force shutdown (immediate)"
+    exit 1
+fi
+
+# Function to stop a VM
+stop_vm() {
+    local vm_name="${CLUSTER_NAME}-${1}"
+    local vm_type="${2}"
+    
+    echo -n "[${vm_type}] Stopping ${vm_name}... "
+    
+    # Check if VM exists
+    if ! sudo virsh dominfo "${vm_name}" &>/dev/null; then
+        echo "ERROR: VM does not exist"
+        return 1
+    fi
+    
+    # Check current state
+    local state=$(sudo virsh domstate "${vm_name}" 2>/dev/null)
+    
+    if [ "${state}" = "shut off" ]; then
+        echo "already stopped"
+        return 0
+    fi
+    
+    # Stop the VM
+    if [ "${SHUTDOWN_TYPE}" = "force" ]; then
+        if sudo virsh destroy "${vm_name}" &>/dev/null; then
+            echo "FORCED"
+            return 0
+        else
+            echo "FAILED"
+            return 1
+        fi
+    else
+        if sudo virsh shutdown "${vm_name}" &>/dev/null; then
+            echo "OK (graceful shutdown initiated)"
+            return 0
+        else
+            echo "FAILED"
+            return 1
+        fi
+    fi
+}
+
+# Stop worker nodes first (if any)
+if [ ${#WORKERS[@]} -gt 0 ]; then
+    echo ""
+    echo "Stopping worker nodes..."
+    for worker in "${WORKERS[@]}"; do
+        stop_vm "${worker}" "WORKER"
+    done
+    
+    if [ "${SHUTDOWN_TYPE}" = "graceful" ]; then
+        echo "Waiting 10 seconds for workers to shut down..."
+        sleep 10
+    fi
+fi
+
+# Stop master nodes
+echo ""
+echo "Stopping master nodes..."
+for master in "${MASTERS[@]}"; do
+    stop_vm "${master}" "MASTER"
+done
+
+if [ "${SHUTDOWN_TYPE}" = "graceful" ]; then
+    echo ""
+    echo "Graceful shutdown initiated. VMs will take a moment to shut down completely."
+    echo "To force immediate shutdown, run:"
+    echo "  $0 force"
+fi
+
+echo ""
+echo "=========================================="
+echo "Cluster VMs shutdown completed"
+echo "=========================================="
+echo ""
+echo "To check VM status, run:"
+echo "  sudo virsh list --all | grep ${CLUSTER_NAME}"
+echo ""

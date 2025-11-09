@@ -70,3 +70,17 @@
   delay: 5
   failed_when: copy_files is failed
   until: copy_files is succeeded
+
+- name: Create VM management scripts
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ clusters_dir }}/{{ clustername }}/{{ item.dest }}"
+    mode: '0755'
+  loop:
+    - { src: "startvms.sh.j2", dest: "startvms.sh" }
+    - { src: "stopvms.sh.j2", dest: "stopvms.sh" }
+  register: create_scripts
+  retries: 10
+  delay: 5
+  failed_when: create_scripts is failed
+  until: create_scripts is succeeded

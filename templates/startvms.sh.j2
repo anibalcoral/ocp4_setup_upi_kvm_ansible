@@ -1,0 +1,85 @@
+#!/bin/bash
+# Script to start all VMs for OpenShift cluster: {{ clustername }}
+# Generated automatically by Ansible
+
+set -e
+
+CLUSTER_NAME="{{ clustername }}"
+{% if sno == "true" %}
+# Single Node OpenShift (SNO) - only master node
+MASTERS=("master-0")
+WORKERS=()
+{% else %}
+# 3-node cluster configuration
+MASTERS=("master-0" "master-1" "master-2")
+{% if n_worker > 0 %}
+WORKERS=({% for i in range(n_worker) %}"worker-{{ i }}"{% if not loop.last %} {% endif %}{% endfor %})
+{% else %}
+WORKERS=()
+{% endif %}
+{% endif %}
+
+echo "=========================================="
+echo "Starting OpenShift cluster VMs"
+echo "Cluster: ${CLUSTER_NAME}"
+echo "=========================================="
+
+# Function to start a VM
+start_vm() {
+    local vm_name="${CLUSTER_NAME}-${1}"
+    local vm_type="${2}"
+    
+    echo -n "[${vm_type}] Starting ${vm_name}... "
+    
+    # Check if VM exists
+    if ! sudo virsh dominfo "${vm_name}" &>/dev/null; then
+        echo "ERROR: VM does not exist"
+        return 1
+    fi
+    
+    # Check current state
+    local state=$(sudo virsh domstate "${vm_name}" 2>/dev/null)
+    
+    if [ "${state}" = "running" ]; then
+        echo "already running"
+        return 0
+    fi
+    
+    # Start the VM
+    if sudo virsh start "${vm_name}" &>/dev/null; then
+        echo "OK"
+        return 0
+    else
+        echo "FAILED"
+        return 1
+    fi
+}
+
+# Start master nodes
+echo ""
+echo "Starting master nodes..."
+for master in "${MASTERS[@]}"; do
+    start_vm "${master}" "MASTER"
+done
+
+# Start worker nodes (if any)
+if [ ${#WORKERS[@]} -gt 0 ]; then
+    echo ""
+    echo "Starting worker nodes..."
+    for worker in "${WORKERS[@]}"; do
+        start_vm "${worker}" "WORKER"
+    done
+fi
+
+echo ""
+echo "=========================================="
+echo "Cluster VMs startup completed"
+echo "=========================================="
+echo ""
+echo "To check VM status, run:"
+echo "  sudo virsh list --all | grep ${CLUSTER_NAME}"
+echo ""
+echo "To monitor cluster status:"
+echo "  export KUBECONFIG={{ clusters_dir }}/{{ clustername }}/auth/kubeconfig"
+echo "  oc get nodes"
+echo ""
