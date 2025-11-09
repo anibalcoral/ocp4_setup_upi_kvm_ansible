@@ -1,24 +1,33 @@
 #!/bin/bash
-# Script to stop all VMs for OpenShift cluster: {{ clustername }}
+{% raw -%}
+# Script to stop all VMs for OpenShift cluster: {% endraw %}{{ clustername }}
+{% raw -%}
 # Generated automatically by Ansible
 
 set -e
 
-CLUSTER_NAME="{{ clustername }}"
-{% if sno == "true" %}
+CLUSTER_NAME="{% endraw %}{{ clustername }}{% raw %}"
+{% endraw %}
+{%- if sno == "true" %}
+{% raw -%}
 # Single Node OpenShift (SNO) - only master node
 MASTERS=("master-0")
 WORKERS=()
-{% else %}
+{% endraw %}
+{%- else %}
+{% raw -%}
 # 3-node cluster configuration
 MASTERS=("master-0" "master-1" "master-2")
-{% if n_worker > 0 %}
+{% endraw %}
+{%- if n_worker > 0 %}
 WORKERS=({% for i in range(n_worker) %}"worker-{{ i }}"{% if not loop.last %} {% endif %}{% endfor %})
-{% else %}
+{%- else %}
+{% raw -%}
 WORKERS=()
-{% endif %}
-{% endif %}
-
+{% endraw %}
+{%- endif %}
+{%- endif %}
+{% raw %}
 SHUTDOWN_TYPE="${1:-graceful}"  # Default to graceful shutdown
 
 echo "=========================================="
@@ -111,3 +120,4 @@ echo ""
 echo "To check VM status, run:"
 echo "  sudo virsh list --all | grep ${CLUSTER_NAME}"
 echo ""
+{% endraw %}
