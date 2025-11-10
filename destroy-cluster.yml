@@ -22,20 +22,16 @@
         allvms: "{{ vms.stdout_lines | select('search', clustername) }}"
 
     - name: Destroy all vms
-      community.libvirt.virt:
-        command: destroy
-        force: true
-        name: "{{ item }}"
+      ansible.builtin.command: virsh destroy {{ item }}
       loop: "{{ allvms }}"
       ignore_errors: true
+      changed_when: true
 
     - name: Undefine all vms
-      community.libvirt.virt:
-        command: undefine
-        force: true
-        name: "{{ item }}"
+      ansible.builtin.command: virsh undefine {{ item }} --remove-all-storage
       loop: "{{ allvms }}"
       ignore_errors: true
+      changed_when: true
 
     - name: Delete all network files
       ansible.builtin.file:
