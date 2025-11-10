@@ -25,7 +25,7 @@
     serole: object_r
     setype: dnsmasq_etc_t
     seuser: system_u
-  register: dnsmasq
+  register: dnsmasqconf
   become: true
   when: sno == "false"
 
@@ -51,14 +51,12 @@
   ansible.builtin.service:
     name: NetworkManager
     state: restarted
-  when: dnsmasq.changed
   become: true
 
 - name: Restart libvirt when configuring dnsmasq
   ansible.builtin.service:
     name: libvirtd
     state: restarted
-  when: dnsmasq.changed
   become: true
 
 - name: Configure DHCP reservations
