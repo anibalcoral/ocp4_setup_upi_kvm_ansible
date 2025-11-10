@@ -49,6 +49,10 @@
   become: true
   changed_when: true
 
+- name: Print master-0 IP address
+  ansible.builtin.debug:
+    msg: "Master-0 IP address is {{ master0ip.stdout }}"
+
 - name: Wait for the master-1 VM to get an IP address
   ansible.builtin.shell: "virsh domifaddr {{ clustername }}-master-1 | grep ipv4 | awk '{print $4}' | cut -d'/' -f1"
   retries: 180
@@ -59,6 +63,11 @@
   changed_when: true
   when: sno == "false"
 
+- name: Print master-1 IP address 
+  ansible.builtin.debug:
+    msg: "Master-1 IP address is {{ master1ip.stdout }}"
+  when: sno == "false"
+
 - name: Wait for the master-2 VM to get an IP address
   ansible.builtin.shell: "virsh domifaddr {{ clustername }}-master-2 | grep ipv4 | awk '{print $4}' | cut -d'/' -f1"
   retries: 180
@@ -67,4 +76,9 @@
   register: master2ip
   become: true
   changed_when: true
+  when: sno == "false"
+
+- name: Print master-2 IP address
+  ansible.builtin.debug:
+    msg: "Master-2 IP address is {{ master2ip.stdout }}"
   when: sno == "false"
