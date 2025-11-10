@@ -84,3 +84,15 @@
   delay: 5
   failed_when: create_scripts is failed
   until: create_scripts is succeeded
+
+- name: Create started file on cluster directory
+  ansible.builtin.file:
+    path: "{{ clusters_dir }}/{{ clustername }}/started"
+    state: touch
+    mode: "0644"
+  become: true
+  register: create_started_file
+  retries: 10
+  delay: 5
+  failed_when: create_started_file is failed
+  until: create_started_file is succeeded
