@@ -19,6 +19,8 @@
   "admin_user": "{{ admin_user }}",
   "htpasswd_pass": "{{ htpasswd_pass }}",
   "remove_kubeadmin_user": "{{ remove_kubeadmin_user }}",
+  "ssh_rsa": "{{ ssh_rsa }}",
+  "pullsecret": {{ pullsecret | to_json }},
   "clustertype": "UPI",
   "platform": "none",
   "infra": "kvm",
