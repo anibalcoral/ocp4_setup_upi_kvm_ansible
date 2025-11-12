@@ -5,15 +5,11 @@
   become_method: ansible.builtin.sudo
 
   vars:
-    start_time: "{{ lookup('pipe', 'date +%s') }}"
     external_kvm_node_ip: 192.168.86.199
     external_kvm_ocp_api_ip: 192.168.122.195
     external_kvm_node_user: lchiaret
 
   tasks:
-    - name: Collect the start time
-      ansible.builtin.set_fact:
-        start_time: "{{ lookup('pipe', 'date +%s') }}"
 
     - name: Configuring networkmanager to use dnsmasq
       ansible.builtin.copy:
@@ -133,20 +129,4 @@
       remote_user: "{{ external_kvm_node_user }}"
       delegate_to: "{{ external_kvm_node_ip }}"
 
-    - name: Collect the end time
-      ansible.builtin.set_fact:
-        end_time: "{{ lookup('pipe', 'date +%s') }}"
 
-    - name: Calculate the script execution time
-      ansible.builtin.set_fact:
-        total_time: "{{ (end_time | int) - (start_time | int) }}"
-
-    - name: Convert the execution time to hour, minute and seconds
-      ansible.builtin.set_fact:
-        hours: "{{ (total_time | int) // 3600 }}"
-        minutes: "{{ ((total_time | int) % 3600) // 60 }}"
-        seconds: "{{ (total_time | int) % 60 }}"
-
-    - name: Show the script execution time
-      ansible.builtin.debug:
-        msg: "The execution time is {{ hours }}h {{ minutes }}m {{ seconds }}s."
